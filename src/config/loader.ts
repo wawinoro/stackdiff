@@ -1,37 +1,48 @@
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
+import { assertValidConfig, Config } from './validator';
 
-export type StackConfig = Record<string, string | number | boolean | null>;
+export type FileFormat = 'json' | 'yaml' | 'env';
 
-export interface LoadedStack {
-  name: string;
-  config: StackConfig;
+function detectFormat(filePath: string): FileFormat {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.json') return 'json';
+  if (ext === '.yaml' || ext === '.yml') return 'yaml';
+  return 'env';
 }
 
-export function loadConfig(filePath: string, stackName: string): LoadedStack {
-  const resolved = path.resolve(filePath);
+function parseEnv(content: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const value = trimmed.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, '');
+    result[key] = value;
+  }
+  return result;
+}
 
-  if (!fs.existsSync(resolved)) {
-    throw new Error(`Config file not found: ${resolved}`);
+export function loadConfig(filePath: string): Config {
+  const abs = path.resolve(filePath);
+  if (!fs.existsSync(abs)) {
+    throw new Error(`Config file not found: ${abs}`);
   }
 
-  const ext = path.extname(resolved).toLowerCase();
-  const raw = fs.readFileSync(resolved, 'utf-8');
+  const content = fs.readFileSync(abs, 'utf-8');
+  const format = detectFormat(filePath);
 
-  let config: StackConfig;
-
-  if (ext === '.json') {
-    config = JSON.parse(raw) as StackConfig;
-  } else if (ext === '.yaml' || ext === '.yml') {
-    config = yaml.load(raw) as StackConfig;
+  let raw: unknown;
+  if (format === 'json') {
+    raw = JSON.parse(content);
+  } else if (format === 'yaml') {
+    raw = yaml.load(content);
   } else {
-    throw new Error(`Unsupported config format: ${ext}. Use .json or .yaml/.yml`);
+    raw = parseEnv(content);
   }
 
-  if (typeof config !== 'object' || config === null || Array.isArray(config)) {
-    throw new Error(`Config file must be a key-value object: ${resolved}`);
-  }
-
-  return { name: stackName, config };
+  return assertValidConfig(raw, filePath);
 }
