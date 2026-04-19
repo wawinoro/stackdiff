@@ -1,0 +1,11 @@
+# Typescript
+
+node_modules/
+*.tsbuildinfo
+build/
+.cache/
+coverage/
+out/
+*.log
+.next/
+*.js.map
