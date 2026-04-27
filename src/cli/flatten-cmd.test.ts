@@ -60,4 +60,21 @@ describe("runFlattenCmd", () => {
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
   });
+
+  it("throws when input file does not exist", async () => {
+    await expect(
+      runFlattenCmd({ input: "/nonexistent/path/cfg.json", separator: ".", reverse: false, format: "env" })
+    ).rejects.toThrow();
+  });
+
+  it("uses custom separator in output keys", async () => {
+    const input = writeTmp("cfg.json", JSON.stringify({ db: { host: "localhost" } }));
+    const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "stackdiff-out-"));
+    const output = path.join(outDir, "out.env");
+
+    await runFlattenCmd({ input, output, separator: "__", reverse: false, format: "env" });
+
+    const content = fs.readFileSync(output, "utf-8");
+    expect(content).toContain("db__host=localhost");
+  });
 });
