@@ -22,6 +22,9 @@ Compares two snapshots and returns:
 - `removed` — keys present in `a` but not `b`
 - `changed` — keys present in both with differing values, as `[oldValue, newValue]` tuples
 
+### `deleteSnapshot(filepath)`
+Deletes a snapshot file from disk. Throws if the file does not exist or cannot be removed.
+
 ## CLI Usage
 
 ```bash
@@ -33,6 +36,9 @@ stackdiff snapshot list --dir .snapshots
 
 # Diff two snapshots
 stackdiff snapshot diff --a .snapshots/staging-2024-01-01.json --b .snapshots/staging-2024-02-01.json
+
+# Delete a snapshot
+stackdiff snapshot delete --file .snapshots/staging-2024-01-01.json
 ```
 
 ## Snapshot File Format
