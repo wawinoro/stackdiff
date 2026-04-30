@@ -56,7 +56,22 @@ export function parseCompareArgs(argv: string[]): CompareArgs {
   return args;
 }
 
+/**
+ * Validates that both config file paths exist and are readable before
+ * attempting to load them, providing clearer error messages than a raw
+ * filesystem exception would.
+ */
+function assertFilesExist(fileA: string, fileB: string): void {
+  for (const [label, filePath] of [['fileA', fileA], ['fileB', fileB]] as const) {
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`compare-cmd: ${label} not found: ${filePath}`);
+    }
+  }
+}
+
 export function runCompareCmd(args: CompareArgs): void {
+  assertFilesExist(args.fileA, args.fileB);
+
   const configA = loadConfig(args.fileA);
   const configB = loadConfig(args.fileB);
   const result = compareConfigs(configA, configB, args.mode);
